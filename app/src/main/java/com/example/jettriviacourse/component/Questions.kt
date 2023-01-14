@@ -1,9 +1,11 @@
 package com.example.jettriviacourse.component
 
 import android.util.Log
+import android.widget.RadioButton
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -45,6 +48,7 @@ import com.example.jettriviacourse.util.AppColors
 
 @Composable
 fun Questions(viewModel: QuestionsViewModel) {
+
     val questions = viewModel.data.value.data?.toMutableList()
     Log.d("Loading data", "List size: ${questions?.size}")
 
@@ -62,16 +66,19 @@ fun Questions(viewModel: QuestionsViewModel) {
     } else {
         val question = try {
             questions?.get(questionIndex.value)
+
         } catch (e: Exception) {
             null
         }
+        questionsNumber.value = questions?.size ?: 0
         question?.let {
             QuestionDisplay(
                 questionItem = question,
                 questionIndex = questionIndex,
                 questionsNumber = questionsNumber,
+                viewModel = viewModel,
                 onNextClicked = {
-                    questionIndex.value.inc()
+                    questionIndex.value = questionIndex.value + 1
                 }
             )
         }
@@ -84,7 +91,7 @@ fun QuestionDisplay(
     questionItem: QuestionItem,
     questionIndex: MutableState<Int> = mutableStateOf(0),
     questionsNumber: MutableState<Int> = mutableStateOf(0),
-//    viewModel: QuestionsViewModel,
+    viewModel: QuestionsViewModel,
     onNextClicked: (Int) -> Unit = {}
 ) {
     val choicesState = remember(questionItem) {
@@ -122,7 +129,7 @@ fun QuestionDisplay(
             horizontalAlignment = Alignment.Start
 
         ) {
-            QuestionTracker(counter = questionIndex.value, outOf =  questionsNumber.value)
+            QuestionTracker(counter = questionIndex.value + 1, outOf =  questionsNumber.value)
             DrawDottedLine(pathEffect = pathEffect)
             Column {
                 Text(
@@ -140,11 +147,15 @@ fun QuestionDisplay(
 
                 // choices
                 choicesState.forEachIndexed { index, answer ->
+
+                    val onAreaClicked: () -> Unit = { updateAnswer(index) }
+
+
                     Row(
                         modifier = Modifier
                             .padding(3.dp)
                             .fillMaxWidth()
-                            .height(45.dp)
+                            .wrapContentHeight()
                             .border(
                                 width = 4.dp,
                                 brush = Brush.linearGradient(
@@ -166,12 +177,13 @@ fun QuestionDisplay(
                                     bottomStartPercent = 50
                                 )
                             )
-                            .background(color = Color.Transparent),
-                        verticalAlignment = CenterVertically
+                            .background(color = Color.Transparent)
+                            .clickable { onAreaClicked() },
+                        verticalAlignment = CenterVertically,
                     ) {
-                        RadioButton(
+                                RadioButton(
                             selected = answerState.value == index,
-                            onClick = { updateAnswer(index) },
+                            onClick = onAreaClicked,
                             modifier = Modifier.padding(start = 16.dp),
                             colors = RadioButtonDefaults.colors(
                                 selectedColor = if (correctAnswerState.value == true && index == answerState.value)
@@ -197,7 +209,9 @@ fun QuestionDisplay(
                                 append(answer)
                             }
                         }
-                        Text(text = annotatedString, modifier = Modifier.padding(6.dp))
+                        Text(text = annotatedString, modifier = Modifier.padding(6.dp).clickable {
+                            onAreaClicked()
+                        })
                     }
                 }
                 Button(
