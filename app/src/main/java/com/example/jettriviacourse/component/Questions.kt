@@ -1,13 +1,13 @@
 package com.example.jettriviacourse.component
 
 import android.util.Log
-import android.widget.RadioButton
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,9 +15,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonDefaults.buttonColors
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
@@ -25,6 +26,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -35,6 +37,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -61,12 +64,11 @@ fun Questions(viewModel: QuestionsViewModel) {
     }
 
     if (viewModel.isDataLoading == true) {
-        CircularProgressIndicator(modifier = Modifier.size(100.dp))
+        LoadingPage()
         Log.d("Loading data", "Questions are loading!")
     } else {
         val question = try {
             questions?.get(questionIndex.value)
-
         } catch (e: Exception) {
             null
         }
@@ -76,7 +78,6 @@ fun Questions(viewModel: QuestionsViewModel) {
                 questionItem = question,
                 questionIndex = questionIndex,
                 questionsNumber = questionsNumber,
-                viewModel = viewModel,
                 onNextClicked = {
                     questionIndex.value = questionIndex.value + 1
                 }
@@ -85,13 +86,34 @@ fun Questions(viewModel: QuestionsViewModel) {
     }
 }
 
-//@Preview
+@Preview
+@Composable
+fun LoadingPage() {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(),
+        color = AppColors.mDarkPurple
+    )
+    {
+        Column(
+            modifier = Modifier.wrapContentSize(),
+            verticalArrangement = Arrangement.Center,
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(50.dp),
+                color = AppColors.mOffWhite
+            )
+        }
+    }
+}
+
+
 @Composable
 fun QuestionDisplay(
     questionItem: QuestionItem,
     questionIndex: MutableState<Int> = mutableStateOf(0),
     questionsNumber: MutableState<Int> = mutableStateOf(0),
-    viewModel: QuestionsViewModel,
     onNextClicked: (Int) -> Unit = {}
 ) {
     val choicesState = remember(questionItem) {
@@ -129,7 +151,8 @@ fun QuestionDisplay(
             horizontalAlignment = Alignment.Start
 
         ) {
-            QuestionTracker(counter = questionIndex.value + 1, outOf =  questionsNumber.value)
+            ShowProgress(score = questionIndex.value + 1, maxIndex = questionsNumber.value)
+            QuestionTracker(counter = questionIndex.value + 1, outOf = questionsNumber.value)
             DrawDottedLine(pathEffect = pathEffect)
             Column {
                 Text(
@@ -147,10 +170,7 @@ fun QuestionDisplay(
 
                 // choices
                 choicesState.forEachIndexed { index, answer ->
-
                     val onAreaClicked: () -> Unit = { updateAnswer(index) }
-
-
                     Row(
                         modifier = Modifier
                             .padding(3.dp)
@@ -181,7 +201,7 @@ fun QuestionDisplay(
                             .clickable { onAreaClicked() },
                         verticalAlignment = CenterVertically,
                     ) {
-                                RadioButton(
+                        RadioButton(
                             selected = answerState.value == index,
                             onClick = onAreaClicked,
                             modifier = Modifier.padding(start = 16.dp),
@@ -209,9 +229,11 @@ fun QuestionDisplay(
                                 append(answer)
                             }
                         }
-                        Text(text = annotatedString, modifier = Modifier.padding(6.dp).clickable {
-                            onAreaClicked()
-                        })
+                        Text(text = annotatedString, modifier = Modifier
+                            .padding(6.dp)
+                            .clickable {
+                                onAreaClicked()
+                            })
                     }
                 }
                 Button(
@@ -220,7 +242,7 @@ fun QuestionDisplay(
                         .padding(3.dp)
                         .align(alignment = Alignment.CenterHorizontally),
                     shape = RoundedCornerShape(34.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AppColors.mLightBlue),
+                    colors = buttonColors(containerColor = AppColors.mLightBlue),
                 ) {
                     Text(
                         text = "Next",
@@ -278,3 +300,70 @@ fun QuestionTracker(counter: Int = 10, outOf: Int = 100) {
         modifier = Modifier.padding(20.dp)
     )
 }
+
+
+@Preview
+@Composable
+fun ShowProgress(score: Int = 1, maxIndex: Int = 100) {
+
+    val gradient = Brush.verticalGradient(
+        listOf(
+            Color(0xE6008EFF),
+            Color(0xFF4CAF50)
+        ), tileMode = TileMode.Repeated
+    )
+
+    val progressFactor by remember(score) {
+        mutableStateOf(score * 0.005f)
+    }
+
+    Row(
+        modifier = Modifier
+            .padding(3.dp)
+            .fillMaxWidth()
+            .wrapContentHeight()
+            .border(
+                width = 4.dp,
+                brush = Brush.linearGradient(
+                    colors = AppColors.run {
+                        listOf(
+                            mOffDarkPurple,
+                            mBlue,
+                            mLightGray
+                        )
+                    },
+                ),
+                shape = RoundedCornerShape(34.dp)
+            )
+            .clip(
+                RoundedCornerShape(
+                    topStartPercent = 50,
+                    bottomEndPercent = 50,
+                    topEndPercent = 50,
+                    bottomStartPercent = 50
+                )
+            )
+            .background(color = Color.Transparent),
+        verticalAlignment = CenterVertically,
+    ) {
+        Button(
+            contentPadding = PaddingValues(1.dp),
+            modifier = Modifier
+                .fillMaxWidth(progressFactor)
+                .background(brush = gradient),
+            enabled = false,
+            elevation = null,
+            colors = buttonColors(
+                containerColor = Color.Transparent,
+                disabledContainerColor = Color.Transparent
+            ),
+            onClick = {}
+        ) {
+            Text(
+                text = (score * 10).toString(),
+                modifier = Modifier.clip(RoundedCornerShape(50))
+            )
+        }
+    }
+}
+

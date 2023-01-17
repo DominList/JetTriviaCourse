@@ -35,4 +35,6 @@ class QuestionsViewModel @Inject constructor(private val repository: QuestionRep
         }
     }
 
+    fun getAllQuestionsNumber(): Int = data.value.data?.size ?: 0
+
 }
